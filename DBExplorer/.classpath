@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/3rdPartyLibraries"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/ConfigurationManager"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/LicenseManager"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/Toolkit"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/ViewFounder"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/WebToolkit"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/XMLPanther"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="build"/>
+</classpath>

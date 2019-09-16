@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<project name="DBExplorer" basedir="." default="usage">
+    <property file="build.properties" />
+
+	<property name="version" value="${project.version}" />
+    	<property name="name" value="${project.name}"/>
+
+	<property name="root.dir" value="."/>
+	<property name="workspace.dir" value=".."/>
+
+	<property name="project.release.dir" value="${root.dir}/release"/>
+	<property name="project.build.dir" value="${root.dir}/build" />
+
+	<property name="java.build.dir" value="${project.build.dir}/java/classes" />
+    <property name="jsp.build.dir" value="${project.build.dir}/jsp"/>
+    	
+    <target name="usage">
+        <echo message="" />
+        <echo message="Available targets are:" />
+        <echo message="" />
+        <echo message="init      --> initializes build environmet." />
+        <echo message="build     --> to build project" />
+        <echo message="clean     --> to clean build environment" />
+        <echo message="release-[test|prod]   --> to create release package" />
+        <echo message="" />
+    </target>
+    
+	<target name="setup-env" >
+	   		<mkdir dir="${project.build.dir}" />
+	    	<mkdir dir="${java.build.dir}" />
+			<mkdir dir="${project.release.dir}" />		
+	   		<mkdir dir="${root.dir}/web/WEB-INF/classes" />
+	   		<mkdir dir="${root.dir}/web/WEB-INF/lib" />
+	</target>		
+	
+   <target name="init" depends="setup-env,setup-config"> 
+ 
+   </target>
+	
+    <target name="build-java" depends="init" description="Compile main source tree java files">
+        <mkdir dir="${java.build.dir}" />
+        <javac destdir="${java.build.dir}" target="1.5" source="1.5" debug="true" deprecation="false" optimize="false" failonerror="true">
+            <src path="${root.dir}/src" />
+            <classpath>
+                <fileset dir="${root.dir}/web/WEB-INF/lib">
+                    <include name="*.jar"/> 
+                </fileset>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="clean" description="Cleans classes that can be re-built ">
+        <delete includeemptydirs="true" failonerror="false">
+            <fileset dir="${project.build.dir}" includes="**/*.*"/>
+            <fileset dir="${root.dir}/release" includes="*.war"/>
+            <fileset dir="${root.dir}/web/WEB-INF/lib" includes="*.*"/>
+            <fileset dir="${root.dir}/web/WEB-INF/classes" includes="*.*"/>
+	    <fileset dir="${project.build.dir}" />
+	    <fileset dir="${java.build.dir}" />
+	    <fileset dir="${project.release.dir}" />		
+	    <fileset dir="${root.dir}/web/WEB-INF/classes" />
+        </delete> 
+    </target>
+
+    <target name="setup-config" description="Copy xml config files to classes dir">
+        <copy todir="${root.dir}/web/WEB-INF/classes">
+            <fileset dir="${root.dir}/config">
+                <include name="jdog-*.*"/>
+                <include name="jdbc.properties"/>
+            </fileset>
+        </copy>
+        <copy todir="${root.dir}/web/WEB-INF">
+            <fileset dir="${root.dir}/config">
+                <include name="web.xml"/>
+                <include name="jdbc.properties"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="create-jar" description="create jar file">
+    	<jar destfile="${root.dir}/web/WEB-INF/lib/${name}_${version}.jar">
+        	<fileset dir="${java.build.dir}">
+            	<include name="**/*.*" />
+             </fileset>
+        </jar>
+    </target>
+
+	<target name="copy-dependency" description="Copies dependencies into lib">
+	    <copy todir="${root.dir}/web/WEB-INF/lib">
+	        <fileset dir="${workspace.dir}/3rdPartyLibraries/lib">
+	                <include name="*.jar"/> 
+	            </fileset>
+	          <fileset dir="${workspace.dir}/build/ConfigurationManager/release">
+	                  <include name="*.jar"/> 
+	          </fileset>
+	          <fileset dir="${workspace.dir}/build/LicenseManager/release">
+	                   <include name="*.jar"/> 
+	           </fileset>
+	          <fileset dir="${workspace.dir}/build/Toolkit/release">
+	                   <include name="*.jar"/> 
+	           </fileset>
+	      
+	           <fileset dir="${workspace.dir}/build/WebToolkit/release">
+	                       <include name="*.jar"/> 
+	           </fileset>
+	          
+	          <fileset dir="${workspace.dir}/build/ViewFounder/release">
+	                   <include name="*.jar"/> 
+	           </fileset>
+	     
+	          <fileset dir="${workspace.dir}/build/XMLPanther/release">
+	                   <include name="*.jar"/> 
+	           </fileset>
+	    </copy>
+	</target>
+
+	<target name="create-war" description="Deploy application as a WAR file">
+        <war destfile="release/${name}.war" webxml="${root.dir}/web/WEB-INF/web.xml">
+            <fileset dir="${root.dir}/web">
+                <exclude name="**\jsp\*.*" />
+                <include name="**\*.*" />
+            </fileset>
+        </war>
+    </target>
+	
+	<target name="create-war-jsp" description="Deploy application as a WAR file">
+        <war destfile="release/${name}.war" webxml="${root.dir}/web/WEB-INF/web.xml">
+            <fileset dir="${root.dir}/web">
+                <include name="**\*.*" />
+            </fileset>
+        </war>
+    </target>
+        
+    <target name="jspc"> 
+        <taskdef classname="org.apache.jasper.JspC" name="jasper2" > 
+          <classpath id="jspc.classpath"> 
+            <pathelement location="${java.lib}/tools.jar"/> 
+            <fileset dir="${tomcat.lib}"> 
+              <include name="*.jar"/> 
+            </fileset> 
+            <fileset dir="${tomcat.home}/bin"> 
+              <include name="*.jar"/> 
+            </fileset> 
+          </classpath> 
+        </taskdef> 
+
+        <jasper2 
+                 validateXml="false" 
+                 uriroot="${root.dir}/web" 
+                 webXmlFragment="${root.dir}/web/WEB-INF/generated_web.xml" 
+                 outputDir="${jsp.build.dir}/src" addWebXmlMappings="true"
+                 package="s3tool.jdog.jsp"
+        /> 
+
+    </target> 
+
+    <target name="jspcompile">
+        <javac destdir="${java.build.dir}"
+                optimize="off"
+                debug="on" failonerror="false"
+                target="1.5" source="1.5"
+                srcdir="${jsp.build.dir}/src" 
+                excludes="**/*.smap">
+            <classpath>
+                <pathelement path="${java.build.dir}"/> 
+                <fileset dir="${root.dir}/web/WEB-INF/lib">
+                    <include name="*.jar"/>
+                </fileset>
+                <fileset dir="${tomcat.lib}">
+                    <include name="*.jar"/>
+                </fileset>
+                <fileset dir="${tomcat.home}/bin"> 
+                    <include name="*.jar"/> 
+                </fileset> 
+            </classpath>
+            <include name="**" />
+            <exclude name="tags/**" />
+        </javac>
+    </target>
+    <target name="build-jsp" depends="init,jspc,jspcompile"/> 
+	
+    <target name="build" depends="init,build-java, build-jsp" />
+	
+    <target name="release-prod" depends="clean,init,copy-dependency, build,create-jar,create-war"/>
+
+    <target name="release-test" depends="clean,init,copy-dependency,build-java,create-jar,create-war-jsp"/>
+    <target name="eclipsify" depends="clean,init"/>
+</project>

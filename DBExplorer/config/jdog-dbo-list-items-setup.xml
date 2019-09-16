@@ -1,0 +1,150 @@
+<S3ViewFounder>
+<viewgroup id="DBObjects" name=" DB Objects">
+    <view id="Triggers" label=" Triggers "> 
+        <view-def>
+            <sql type="static"><![CDATA[ 
+select 	TABLE_OWNER,
+	TABLE_NAME,
+	TRIGGER_NAME,
+	TRIGGER_TYPE,
+	TRIGGERING_EVENT,
+	STATUS
+from 	dba_triggers
+order 	by TABLE_NAME, TRIGGER_NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+
+    <view id="Clusters" label=" Clusters "> 
+        <view-def>
+            <sql type="static"><![CDATA[
+select 	a.OWNER,
+	TABLESPACE_NAME,
+	a.CLUSTER_NAME,
+	TABLE_NAME,
+	TAB_COLUMN_NAME,
+	CLU_COLUMN_NAME
+from 	dba_clusters a, dba_clu_columns b
+where	a.CLUSTER_NAME = b.CLUSTER_NAME
+order 	by a.OWNER,TABLESPACE_NAME,a.CLUSTER_NAME,TABLE_NAME
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Sequences" label=" Sequences "> 
+        <view-def>
+            <sql type="static"><![CDATA[ 
+select 	SEQUENCE_OWNER,
+	SEQUENCE_NAME,
+	MIN_VALUE,
+	MAX_VALUE,
+	INCREMENT_BY,
+	CYCLE_FLAG,
+	ORDER_FLAG,
+	CACHE_SIZE,
+	LAST_NUMBER
+from  	dba_sequences
+where	SEQUENCE_OWNER not in ('SYS','SYSTEM')
+order 	by SEQUENCE_OWNER,SEQUENCE_NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Jobs" label=" Jobs "> 
+        <view-def>
+            <sql type="static"><![CDATA[
+select 	LOG_USER,
+	SCHEMA_USER schema,
+	JOB job#,
+	INTERVAL,
+	to_char(NEXT_DATE,'MM/DD/YYYY HH24:MI:SS') next_execution,
+	BROKEN,
+	substr(WHAT,1,100) what
+from 	dba_jobs
+order 	by LOG_USER
+               
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Snapshots" label=" Snapshots "> 
+        <view-def>
+            <sql type="static"><![CDATA[ 
+select 
+OWNER,
+	NAME,
+	TABLE_NAME,
+	MASTER_VIEW,
+	MASTER_OWNER,
+	MASTER,
+	MASTER_LINK,
+	CAN_USE_LOG,
+	UPDATABLE,
+	LAST_REFRESH,
+	ERROR,
+	TYPE,
+	NEXT,
+	REFRESH_GROUP
+from  	dba_snapshots
+order 	by OWNER,NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Synonyms" label=" Synonyms "> 
+        <view-def>
+            <sql type="static"><![CDATA[
+select	OWNER,
+	SYNONYM_NAME,
+	TABLE_OWNER,
+	TABLE_NAME,
+	DB_LINK
+from  	dba_synonyms
+where	owner not in ('SYS','SYSTEM','PUBLIC','DBSNMP')
+order 	by OWNER,SYNONYM_NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Links" label=" Links "> 
+        <view-def>
+            <sql type="static"><![CDATA[
+select 	OWNER,
+	DB_LINK,
+	USERNAME,
+	HOST,
+	to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created
+from  	dba_db_links
+order	by OWNER,DB_LINK
+
+               
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Views" label=" Views "> 
+        <view-def>
+            <sql type="static"><![CDATA[ 
+select 	OWNER,
+	OBJECT_NAME,
+	to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created,
+	status
+from  	dba_objects
+where	OWNER not in ('SYS','SYSTEM')
+and	OBJECT_TYPE='VIEW'
+order	by OWNER,OBJECT_NAME
+                ]]></sql>
+        </view-def>
+    </view>
+
+  </viewgroup>
+  
+ <!-- Skeleton for copy & paste 
+ <viewgroup id="" name="  ">
+    <view id="" label="  "> 
+        <view-def>
+            <sql type="static"><![CDATA[  ]]></sql>
+        </view-def>
+    </view>
+  </viewgroup>
+  -->
+  
+</S3ViewFounder>

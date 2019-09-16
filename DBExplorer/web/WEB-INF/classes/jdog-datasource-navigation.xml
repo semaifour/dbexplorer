@@ -1,0 +1,14 @@
+<S3ViewFounder>
+	<viewgroup id="dsnav" name="Data Sources">
+		<view id="configured" label="Configured Datasources">
+			<view-def  type="http" subtype="get">
+				<url method="get">lsdss.do</url>
+			</view-def>
+		</view>
+		<view id="new" label="New Connection">
+			<view-def  type="http" subtype="get">
+				<url method="get">connect.do</url>
+			</view-def>
+		</view>
+	</viewgroup>
+</S3ViewFounder>

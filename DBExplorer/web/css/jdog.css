@@ -1,0 +1,116 @@
+body {
+margin:0;
+padding:0;
+color:black;
+background-color:#FFFFFF;
+font-family : Calibri, Verdana, Arial, Helvetica, sans-serif;
+font-size:12px;
+}
+
+body.jdogbody {
+margin:0;
+padding:0;
+color:black;
+background-color:#FFFFFF;
+font-family : Calibri, Verdana, Arial, Helvetica, sans-serif;
+font-size:12px;
+}
+
+TR.header TH {
+    text-align:center;
+    color:white;
+    background-color:#708090;
+    font-size:12px;
+}
+
+TR.header2 TH {
+    text-align:center;
+    background-color:#F0F0F0;
+    font-size:12px;
+}
+
+TR.lineitemA TD {
+    background-color:#FFFFFF;
+    font-size:12px;
+}
+
+TR.lineitemB TD {
+    background-color:#F0F0F0;
+    font-size:12px;
+}
+
+.navstatusbar {
+    text-align:left;
+    color:black;
+    background-color:#EDF5FF;
+    font-size:12px;
+}
+
+
+TH.tabs {
+    text-align:center;
+    color:white;
+    background-color:#243356;
+    font-size:12px;
+	width:150px;
+}
+
+
+TH.selectedtab {
+    background-color:#2647A0;
+    font-size:12px;
+	width:150px;
+}
+
+
+TH.leftalign {
+    text-align:left;
+    font-size:12px;
+}
+
+INPUT {
+    font-size:12px;
+}
+
+SELECT { 
+    font-size:10px;
+}
+
+OPTION { 
+    font-size:12px;
+}
+
+
+a.highlight1:link {color:#ffffff;text-decoration: none}
+a.highlight1:visited {color:#ffffff;text-decoration: none}
+a.highlight1:hover {background=#3C9DC9;text-decoration: none}
+
+
+
+a.highlight2:link {color: #0000ff}
+a.highlight2:visited {color: #0000ff}
+a.highlight2:hover {background: #000000}
+a.highlight2:hover {color: #ffffff}
+
+a.bubble:link {color: #ff0000}
+a.bubble:visited {color: #0000ff}
+a.bubble:hover {font-size: 150%}
+
+
+td:hover.popup {
+color:#0A00B0; /*for MSIE*/
+}
+
+td.popup {
+color:#0A00B0;	
+}
+
+td.popup span.comment{
+margin-left:0px;
+display:none;
+}
+td:hover.popup span.comment{
+display:inline;
+}
+
+

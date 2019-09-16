@@ -1,0 +1,1190 @@
+<S3ViewFounder>
+<viewgroup id="GeneralInfo" name="General Info">
+    <view id="dbinfo" label=" DB Info"> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select NAME,CREATED,LOG_MODE,CHECKPOINT_CHANGE#,ARCHIVE_CHANGE# from v$database]]></sql>
+        </view-def>
+    </view>
+
+    <view id="dbsize" label=" DB Size"> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[select 	FILE_NAME, d.TABLESPACE_NAME, d.BYTES datafile_size, nvl(sum(e.BYTES),0) bytes_used, round(nvl(sum(e.BYTES),0) / (d.BYTES), 4) * 100 percent_used, d.BYTES - nvl(sum(e.BYTES),0) bytes_free from 	DBA_EXTENTS e, DBA_DATA_FILES d where  	d.FILE_ID = e.FILE_ID (+) group  	by FILE_NAME,d.TABLESPACE_NAME, d.FILE_ID, d.BYTES, STATUS order  	by d.TABLESPACE_NAME,d.FILE_ID ]]></sql>
+        </view-def>
+    </view>
+
+    <view id="dbfiles" label=" DB Files"> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	'Archived Log Directory' "Filename", value "Location" from 	v$parameter where 	name = 'log_archive_dest' UNION select 	'Control Files' "Filename", value "Location" from 	v$parameter where  	name = 'control_files' UNION select 	'Datafile' "Filename", name "Location" from   	v$datafile UNION select 	'LogFile Member' "Filename", member "Location" from  	v$logfile ]]></sql>
+        </view-def>
+    </view>
+
+    <view id="license" label=" License ">
+        <view-def  type="sql" subtype="select">
+        <sql type="static"><![CDATA[  select	SESSIONS_MAX, SESSIONS_WARNING, SESSIONS_CURRENT, SESSIONS_HIGHWATER, USERS_MAX from	v$license ]]></sql>
+        </view-def>
+    </view>
+
+    <view id="versions" label=" Versions "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	BANNER product_versions from	v$version ]]></sql>
+        </view-def>
+    </view>
+</viewgroup>
+<viewgroup id="sessions" name=" Session Statistics">
+
+    <view id="activesessions" label=" Active Sessions "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+                select	nvl(ses.USERNAME,'ORACLE PROC') username, OSUSER os_user, PROCESS pid, ses.SID sid, STATUS, STATE from	v$session ses where status='ACTIVE' order by username, os_user
+            ]]></sql> 
+        </view-def>
+    </view>
+
+    <view id="allsessions" label=" All Sessions "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+                select	nvl(ses.USERNAME,'ORACLE PROC') username, OSUSER os_user, PROCESS pid, ses.SID sid, STATUS, STATE from	v$session ses order by username, os_user
+            ]]></sql> 
+        </view-def>
+    </view>
+    <view id="iousage" label=" IO Usage"> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select	nvl(ses.USERNAME,'ORACLE PROC') username, OSUSER os_user, PROCESS pid, ses.SID sid, SERIAL#, PHYSICAL_READS, BLOCK_GETS, CONSISTENT_GETS, BLOCK_CHANGES, CONSISTENT_CHANGES from	v$session ses, v$sess_io sio where 	ses.SID = sio.SID order 	by PHYSICAL_READS, ses.USERNAME
+
+            ]]></sql> 
+        </view-def>
+    </view>
+
+    <view id="cpuusage" label=" CPU Usage"> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[
+select 	nvl(ss.USERNAME,'ORACLE PROC') username, se.SID, VALUE cpu_usage from 	v$session ss, v$sesstat se, v$statname sn where  	se.STATISTIC# = sn.STATISTIC# and  	NAME like '%CPU used by this session%' and  	se.SID = ss.SID order  	by VALUE desc
+            ]]></sql>
+        </view-def>
+    </view>
+
+    <view id="resusage" label=" Resource Usage "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select 	ses.SID, nvl(ses.USERNAME,'ORACLE PROC') username, sn.NAME statistic, sest.VALUE from 	v$session ses, v$statname sn, v$sesstat sest where 	ses.SID = sest.SID and 	sn.STATISTIC# = sest.STATISTIC# and 	sest.VALUE is not null and 	sest.VALUE != 0            order 	by ses.USERNAME, ses.SID, sn.NAME
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="sessstat" label="Sesssion Usage">
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select  nvl(ss.USERNAME,'ORACLE PROC') username, se.SID, sn.NAME stastic, VALUE usage from 	v$session ss, v$sesstat se, v$statname sn where  	se.STATISTIC# = sn.STATISTIC# and  	se.SID = ss.SID and	se.VALUE > 0 order  	by sn.NAME, se.SID, se.VALUE desc
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="curusage" label="Cursor Usage"> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[
+select 	user_process username, "Recursive Calls", "Opened Cursors", "Current Cursors" from  ( select 	nvl(ss.USERNAME,'ORACLE PROC')||'('||se.sid||') ' user_process, sum(decode(NAME,'recursive calls',value)) "Recursive Calls", sum(decode(NAME,'opened cursors cumulative',value)) "Opened Cursors", sum(decode(NAME,'opened cursors current',value)) "Current Cursors" from 	v$session ss, v$sesstat se, v$statname sn where 	se.STATISTIC# = sn.STATISTIC# and 	(NAME  like '%opened cursors current%' or 	 NAME  like '%recursive calls%' or 	 NAME  like '%opened cursors cumulative%') and 	se.SID = ss.SID and 	ss.USERNAME is not null group 	by nvl(ss.USERNAME,'ORACLE PROC')||'('||se.SID||') ') orasnap_user_cursors order 	by USER_PROCESS,"Recursive Calls"
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="hitratio" label=" Hit Ratio">
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[
+select	USERNAME, CONSISTENT_GETS, BLOCK_GETS, PHYSICAL_READS, ((CONSISTENT_GETS+BLOCK_GETS-PHYSICAL_READS) / (CONSISTENT_GETS+BLOCK_GETS)) Ratio from 	v$session, v$sess_io where 	v$session.SID = v$sess_io.SID and 	(CONSISTENT_GETS+BLOCK_GETS) > 0 and 	USERNAME is not null order	by ((CONSISTENT_GETS+BLOCK_GETS-PHYSICAL_READS) / (CONSISTENT_GETS+BLOCK_GETS))
+            ]]></sql>
+        </view-def>
+    </view>
+</viewgroup>
+<viewgroup id="diskioevent" name=" Disk IO, Events, Waits ">
+
+   <view id="dataio" label=" Datafile I/O "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+            select 	NAME,	PHYRDS "Physical Reads",	round((PHYRDS / PD.PHYS_READS)*100,2) "Read %",	PHYWRTS "Physical Writes", 	round(PHYWRTS * 100 / PD.PHYS_WRTS,2) "Write %", 	fs.PHYBLKRD+FS.PHYBLKWRT "Total Block I/O's" from (	select 	sum(PHYRDS) PHYS_READS,		sum(PHYWRTS) PHYS_WRTS 	from  	v$filestat 	) pd, 	v$datafile df, 	v$filestat fs where 	df.FILE# = fs.FILE# order 	by fs.PHYBLKRD+fs.PHYBLKWRT desc 
+            ]]></sql>
+        </view-def>
+    </view>
+
+  <view id="sortstats" label=" Sort Stats "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	NAME,	VALUE from 	v$sysstat where  	NAME like 'sort%'
+            ]]></sql>
+        </view-def>
+    </view>
+    
+      <view id="allevents" label=" All Events "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[  select 	EVENT, 	TOTAL_WAITS, 	TOTAL_TIMEOUTS,	TIME_WAITED,	round(AVERAGE_WAIT,2) "Average Wait" from 	v$system_event order	by TOTAL_WAITS
+            ]]></sql>
+        </view-def>
+    </view>
+    
+      <view id="allstats" label=" All Stats "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	STATISTIC#,	NAME, 	CLASS, 	VALUE from 	v$sysstat
+             ]]></sql>
+        </view-def>
+    </view>
+    
+    
+    <view id="sgastats" label=" SGA Stats "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	NAME,	BYTES from 	v$sgastat order	by NAME     ]]></sql>
+        </view-def>
+    </view>
+    
+        <view id="waitstats" label=" Wait Stats "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	CLASS,	COUNT,	TIME from  	v$waitstat order	by CLASS
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="wrtreqQ" label=" Write Request Queue "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	sum(decode(NAME,'summed dirty queue length',VALUE,0)) summed_dirty_queue_length,
+	sum(decode(NAME,'write requests',VALUE,0)) write_requests,
+	sum(decode(NAME,'summed dirty queue length',VALUE,0)) / 
+	sum(decode(NAME,'write requests',VALUE))  write_request_queue_length
+from 	v$sysstat
+where  	NAME in ('summed dirty queue length','write requests')
+and  	VALUE > 0
+             ]]></sql>
+        </view-def>
+    </view>
+       <view id="lazydbwrin" label=" Lazy DBWR Indicators "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select  sum(decode (NAME, 'dirty buffers inspected', VALUE)) dirty_buffers_inspected,
+	sum(decode (NAME, 'free buffer inspected', VALUE)) free_buffers_inspected
+from 	v$sysstat
+where  	NAME in ( 'dirty buffers inspected','free buffer inspected')
+and  	VALUE > 0
+             ]]></sql>
+        </view-def>
+    </view>     
+ </viewgroup>
+ <viewgroup id="tablespace" name=" Tablespace ">
+    <view id="Information" label=" Information "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	TABLESPACE_NAME, INITIAL_EXTENT, NEXT_EXTENT, MIN_EXTENTS, MAX_EXTENTS, PCT_INCREASE, STATUS, CONTENTS from 	dba_tablespaces order 	by TABLESPACE_NAME ]]></sql>
+        </view-def>
+    </view>
+    <view id="CoalescedExts" label=" Coalesced Exts "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	TABLESPACE_NAME, TOTAL_EXTENTS, EXTENTS_COALESCED, PERCENT_EXTENTS_COALESCED, TOTAL_BYTES, BYTES_COALESCED, TOTAL_BLOCKS, BLOCKS_COALESCED, PERCENT_BLOCKS_COALESCED from 	dba_free_space_coalesced order 	by TABLESPACE_NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="Usage" label=" Usage "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	a.TABLESPACE_NAME, a.BYTES bytes_used, b.BYTES bytes_free, b.largest, round(((a.BYTES-b.BYTES)/a.BYTES)*100,2) percent_used from 	( select 	TABLESPACE_NAME, sum(BYTES) BYTES from 	dba_data_files group 	by TABLESPACE_NAME) a, ( select 	TABLESPACE_NAME, sum(BYTES) BYTES , max(BYTES) largest from 	dba_free_space group 	by TABLESPACE_NAME) b where 	a.TABLESPACE_NAME=b.TABLESPACE_NAME order 	by ((a.BYTES-b.BYTES)/a.BYTES) desc]]></sql>
+        </view-def>
+    </view>
+    <view id="usersdefault" label=" Users Default (SYSTEM) "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[select 	USERNAME, CREATED, PROFILE, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE from 	dba_users order 	by USERNAME ]]></sql>
+        </view-def>
+    </view>
+    <view id="objinsysts" label=" Objects in SYSTEM TS "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	OWNER, SEGMENT_NAME, SEGMENT_TYPE, TABLESPACE_NAME, BYTES from 	dba_segments where	TABLESPACE_NAME = 'SYSTEM' and	OWNER not in ('SYS','SYSTEM') order 	by OWNER, SEGMENT_NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="freesplrext" label=" Freespace/Largest Ext "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	TABLESPACE_NAME, sum(BYTES) Total_free_space, max(BYTES) largest_free_extent from 	dba_free_space group 	by TABLESPACE_NAME ]]></sql>
+        </view-def>
+    </view>
+</viewgroup>
+ <viewgroup id="userinfo" name=" User Information ">
+    <view id="usrobjs" label=" User Objects "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	USERNAME, count(decode(o.TYPE#, 2,o.OBJ#,'')) Tabs, count(decode(o.TYPE#, 1,o.OBJ#,'')) Inds, count(decode(o.TYPE#, 5,o.OBJ#,'')) Syns, count(decode(o.TYPE#, 4,o.OBJ#,'')) Views, count(decode(o.TYPE#, 6,o.OBJ#,'')) Seqs, count(decode(o.TYPE#, 7,o.OBJ#,'')) Procs, count(decode(o.TYPE#, 8,o.OBJ#,'')) Funcs, count(decode(o.TYPE#, 9,o.OBJ#,'')) Pkgs, count(decode(o.TYPE#,12,o.OBJ#,'')) Trigs, count(decode(o.TYPE#,10,o.OBJ#,'')) Deps from 	obj$ o, dba_users u where 	u.USER_ID = o.OWNER# (+) group	by USERNAME order	by USERNAME
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="invobjs" label=" Invalid Objects "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER, OBJECT_TYPE, OBJECT_NAME, STATUS from 	dba_objects where 	STATUS = 'INVALID' order 	by OWNER, OBJECT_TYPE, OBJECT_NAME
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="objmodi" label=" Object Modification "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER, OBJECT_NAME, OBJECT_TYPE, to_char(LAST_DDL_TIME,'MM/DD/YYYY HH24:MI:SS') last_modified, to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created, STATUS from   	dba_objects where  	(SYSDATE - LAST_DDL_TIME) < 7 order 	by LAST_DDL_TIME DESC
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="usrprivileges" label=" User Privileges "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	rp.GRANTEE, GRANTED_ROLE, rp.ADMIN_OPTION, DEFAULT_ROLE, PRIVILEGE from   	dba_role_privs rp, dba_sys_privs sp where  	rp.GRANTEE = sp.GRANTEE and	rp.GRANTEE not in ('SYS','SYSTEM','DBA') order  	by  rp.GRANTEE, GRANTED_ROLE, PRIVILEGE
+             ]]></sql>
+        </view-def>
+    </view>
+  </viewgroup>
+  <viewgroup id="rollback" name=" Rollback Segments ">
+    <view id="segments" label=" Segments "> 
+    <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	SEGMENT_NAME, OWNER, TABLESPACE_NAME, SEGMENT_ID, FILE_ID, BLOCK_ID, INITIAL_EXTENT, NEXT_EXTENT, MIN_EXTENTS, MAX_EXTENTS, PCT_INCREASE, STATUS, INSTANCE_NUM from 	dba_rollback_segs order	by SEGMENT_NAME]]></sql>
+        </view-def>
+    </view>
+    <view id="transactions" label=" Transactions "> 
+    <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[select NAME, VALUE from   v$sysstat where  name in ( 'consistent gets', 'consistent changes', 'transaction tables consistent reads - undo records applied', 'transaction tables consistent read rollbacks', 'data blocks consistent reads - undo records applied', 'no work - consistent read gets', 'cleanouts only - consistent read gets', 'rollbacks only - consistent read gets', 'cleanouts and rollbacks - consistent read gets') order  by NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="contention" label=" Contention "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[select 	b.NAME, a.USN seg#, GETS, WAITS, round(((GETS-WAITS)*100)/GETS,2) hit_ratio, XACTS active_transactions, WRITES from	v$rollstat a, v$rollname b where	a.USN = b.USN ]]></sql>
+        </view-def>
+    </view>
+    <view id="growth" label=" Growth "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	NAME, a.USN, RSSIZE, OPTSIZE, HWMSIZE, EXTENDS, WRAPS, SHRINKS, AVESHRINK, AVEACTIVE, STATUS from 	v$rollstat a , v$rollname b where 	a.USN=b.USN order	by NAME
+            ]]></sql>
+        </view-def>
+    </view>
+</viewgroup>
+
+ <viewgroup id="fulltablescans" name=" Full Table Scans ">
+    <view id="sysstattabl" label=" System Statistics (Table) "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	NAME,	VALUE from 	v$sysstat where	NAME like '%table'
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="processtabscan" label=" Process Table Scans "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	ss.username||'('||se.sid||') ' "User Process", sum(decode(name,'table scans (short tables)',value)) "Short Scans", sum(decode(name,'table scans (long tables)', value)) "Long Scans", sum(decode(name,'table scan rows gotten',value)) "Rows Retreived" from 	v$session ss, v$sesstat se, v$statname sn where 	se.statistic# = sn.statistic# and 	(name  like '%table scans (short tables)%' or 	 name  like '%table scans (long tables)%' or 	 name  like '%table scan rows gotten%') and 	se.sid = ss.sid and 	ss.username is not null group 	by ss.username||'('||se.sid||') '
+            ]]></sql>
+        </view-def>
+    </view>
+    <view id="prosstabscanave" label=" Process Table Scans (Avg) "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	ss.username||'('||se.sid||') ' "User Process", sum(decode(name,'table scans (short tables)',value)) "Short Scans", sum(decode(name,'table scans (long tables)', value)) "Long Scans", sum(decode(name,'table scan rows gotten',value)) "Rows Retreived", round((sum(decode(name,'table scan rows gotten',value)) - (sum(decode(name,'table scans (short tables)',value)) * 5)) / (sum(decode(name,'table scans (long tables)', value))),2) "Long Scans Length" from 	v$session ss, v$sesstat se, v$statname sn where  	se.statistic# = sn.statistic# and    	(name  like '%table scans (short tables)%' or 	 name  like '%table scans (long tables)%' or 	 name  like '%table scan rows gotten%') and 	se.sid = ss.sid and 	ss.username is not null group	by ss.username||'('||se.sid||') ' having sum(decode(name,'table scans (long tables)', value)) != 0 order by 3 desc
+             ]]></sql>
+        </view-def>
+    </view>
+  </viewgroup>
+   <viewgroup id="contentionlocks" name=" Contention, Locks  ">
+    <view id="lockinfo" label=" Lock Info "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	OS_USER_NAME os_user,
+	PROCESS os_pid,
+	ORACLE_USERNAME oracle_user,
+	l.SID oracle_id,
+	decode(TYPE,
+		'MR', 'Media Recovery',
+		'RT', 'Redo Thread',
+		'UN', 'User Name',
+		'TX', 'Transaction',
+		'TM', 'DML',
+		'UL', 'PL/SQL User Lock',
+		'DX', 'Distributed Xaction',
+		'CF', 'Control File',
+		'IS', 'Instance State',
+		'FS', 'File Set',
+		'IR', 'Instance Recovery',
+		'ST', 'Disk Space Transaction',
+		'TS', 'Temp Segment',
+		'IV', 'Library Cache Invalidation',
+		'LS', 'Log Start or Switch',
+		'RW', 'Row Wait',
+		'SQ', 'Sequence Number',
+		'TE', 'Extend Table',
+		'TT', 'Temp Table', type) lock_type,
+	decode(LMODE,
+		0, 'None',
+		1, 'Null',
+		2, 'Row-S (SS)',
+		3, 'Row-X (SX)',
+		4, 'Share',
+		5, 'S/Row-X (SSX)',
+		6, 'Exclusive', lmode) lock_held,
+	decode(REQUEST,
+		0, 'None',
+		1, 'Null',
+		2, 'Row-S (SS)',
+		3, 'Row-X (SX)',
+		4, 'Share',
+		5, 'S/Row-X (SSX)',
+		6, 'Exclusive', request) lock_requested,
+	decode(BLOCK,
+		0, 'Not Blocking',
+		1, 'Blocking',
+		2, 'Global', block) status,
+	OWNER,
+	OBJECT_NAME
+from	v$locked_object lo,
+	dba_objects do,
+	v$lock l
+where 	lo.OBJECT_ID = do.OBJECT_ID
+AND     l.SID = lo.SESSION_ID
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="sqllockinfo" label=" SQL Lock Info "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	sn.USERNAME,
+	m.SID,
+	sn.SERIAL#,
+	m.TYPE,
+	decode(LMODE,
+		0, 'None',
+		1, 'Null',
+		2, 'Row-S (SS)',
+		3, 'Row-X (SX)',
+		4, 'Share',
+		5, 'S/Row-X (SSX)',
+		6, 'Exclusive') lock_type,
+	decode(REQUEST,
+		0, 'None', 
+		1, 'Null',
+		2, 'Row-S (SS)',
+		3, 'Row-X (SX)', 
+		4, 'Share', 
+		5, 'S/Row-X (SSX)',
+		6, 'Exclusive') lock_requested,
+	m.ID1,
+	m.ID2,
+	t.SQL_TEXT
+from 	v$session sn, 
+	v$lock m , 
+	v$sqltext t
+where 	t.ADDRESS = sn.SQL_ADDRESS 
+and 	t.HASH_VALUE = sn.SQL_HASH_VALUE 
+and 	((sn.SID = m.SID and m.REQUEST != 0) 
+or 	(sn.SID = m.SID and m.REQUEST = 0 and LMODE != 4 and (ID1, ID2) in
+        (select s.ID1, s.ID2 
+         from 	v$lock S 
+         where 	REQUEST != 0 
+         and 	s.ID1 = m.ID1 
+         and 	s.ID2 = m.ID2)))
+order by sn.USERNAME, sn.SID, t.PIECE ]]></sql>
+        </view-def>
+    </view>
+    <view id="latchgetmiss" label=" Latch Gets/Misses "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	NAME,
+	GETS,
+	MISSES,
+	round(((GETS-MISSES)*100) / GETS , 2) "Gets/Misses %",
+	IMMEDIATE_GETS,
+	IMMEDIATE_MISSES
+from 	v$latch
+where 	GETS != 0
+or 	IMMEDIATE_MISSES > 0
+order 	by ((GETS-MISSES) / GETS) desc
+             ]]></sql>
+        </view-def>
+    </view>
+    
+  </viewgroup>
+  
+  <viewgroup id="cursors" name=" Cursors  ">
+    <view id="iointcur" label=" Disk Intensive SQL "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	a.USERNAME,
+	DISK_READS,
+	EXECUTIONS,
+	round(DISK_READS / decode(EXECUTIONS, 0, 1, EXECUTIONS)) "Reads/Execs",
+	SQL_TEXT
+from 	dba_users a, v$session, v$sqlarea
+where 	PARSING_USER_ID=USER_ID 
+and 	ADDRESS=SQL_ADDRESS(+) 
+and 	DISK_READS > 10000
+order  	by DISK_READS desc, EXECUTIONS desc
+             ]]></sql>
+        </view-def>
+    </view>
+        <view id="buffintsql" label=" Buffer Intensive SQL "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	EXECUTIONS,
+	BUFFER_GETS,
+	round(DISK_READS / decode(EXECUTIONS, 0, 1, EXECUTIONS) / 400,2) "Gets/Execs",
+	SQL_TEXT
+from 	v$sqlarea
+where  	BUFFER_GETS / decode(EXECUTIONS,0,1, EXECUTIONS) / 400 > 10 
+order  	by EXECUTIONS desc
+             ]]></sql>
+        </view-def>
+    </view>
+        <view id="bufsqlloads" label=" Buffer SQL w/ Most Loads "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	LOADS,
+	FIRST_LOAD_TIME,
+	SORTS,
+	SQL_TEXT
+from 	v$sqlarea
+where  	LOADS > 50 
+order  	by EXECUTIONS desc
+             ]]></sql>
+        </view-def>
+    </view>
+        <view id="opencurbyusr" label=" Open Cursors By User "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	nvl(USERNAME,'ORACLE PROC')||'('||s.SID||')' username,
+	SQL_TEXT
+from 	v$open_cursor oc, 
+	v$session s
+where 	s.SADDR = oc.SADDR
+order 	by 1
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="runcurbyusr" label=" Running Cursors By User "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	nvl(USERNAME,'ORACLE PROC')||'('||s.SID||')' username,
+	SQL_TEXT
+from 	v$open_cursor oc, v$session s
+where 	s.SQL_ADDRESS = oc.ADDRESS
+and 	s.SQL_HASH_VALUE = oc.HASH_VALUE
+order 	by 1
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="lroprcur" label=" Low Hit Ratio Open Cursors "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	nvl(se0.USERNAME,'ORACLE PROC')||'('||se0.SID||')' username,
+	SQL_TEXT
+from	v$open_cursor oc0, v$session se0
+where 	se0.SADDR = oc0.SADDR   
+and	se0.USERNAME != 'SYS'
+and    	60 < (
+		select 	"Hit Ratio" 
+		from 	(
+select nvl(se.USERNAME,'ORACLE PROC')||'('|| se.SID||')' "User Session",
+	sum(decode(NAME, 'consistent gets',value, 0))  "Consistent Gets",
+	sum(decode(NAME, 'db block gets',value, 0))  "DB Block Gets",
+	sum(decode(NAME, 'physical reads',value, 0))  "Physical Reads", 
+	(
+	(sum(decode(NAME, 'consistent gets',value, 0)) +
+	 sum(decode(NAME, 'db block gets',value, 0)) -
+	 sum(decode(NAME, 'physical reads',value, 0)))
+	/
+	(sum(decode(NAME, 'consistent gets',value, 0)) +
+	 sum(decode(NAME, 'db block gets',value, 0))) * 100)
+	 "Hit Ratio" 
+from 	v$sesstat ss, v$statname sn, v$session se
+where 	ss.SID = se.SID
+and	sn.STATISTIC# = ss.STATISTIC#
+and 	VALUE != 0
+and 	sn.NAME in ('db block gets', 'consistent gets', 'physical reads') 
+group 	by se.USERNAME, se.SID
+) XX
+		where 	nvl(se0.USERNAME,'ORACLE PROC')||'('||se0.SID||')' = "User Session")
+order 	by nvl(se0.USERNAME,'ORACLE'), se0.SID
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="lrruncur" label=" Low Hit Ratio Running Cursors "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	nvl(se0.USERNAME,'ORACLE PROC')||'('|| se0.SID||'),
+	SQL_TEXT
+from 	v$open_cursor oc0, v$session se0
+where  	se0.SQL_ADDRESS = oc0.ADDRESS 
+and 	se0.SQL_HASH_VALUE = oc0.HASH_VALUE 
+and	se0.username != 'SYS'
+and    	60 > (
+	select 	"Hit Ratio" 
+	from (
+select nvl(se.USERNAME,'ORACLE PROC')||'('|| se.SID||')' "User Session",
+	sum(decode(NAME, 'consistent gets',value, 0))  "Consistent Gets",
+	sum(decode(NAME, 'db block gets',value, 0))  "DB Block Gets",
+	sum(decode(NAME, 'physical reads',value, 0))  "Physical Reads", 
+		(
+		(sum(decode(NAME, 'consistent gets',value, 0)) +
+		 sum(decode(NAME, 'db block gets',value, 0)) -
+		 sum(decode(NAME, 'physical reads',value, 0)))
+		/
+		(sum(decode(NAME, 'consistent gets',value, 0)) +
+		 sum(decode(NAME, 'db block gets',value, 0))) * 100) "Hit Ratio" 
+from 	v$sesstat ss, v$statname sn, v$session se
+where 	ss.SID = se.SID
+and	sn.STATISTIC# = ss.STATISTIC#
+and 	VALUE != 0
+and 	sn.NAME in ('db block gets', 'consistent gets', 'physical reads') 
+group 	by se.USERNAME, se.SID
+)
+        where 	nvl(se0.username,'ORACLE PROC')||'('||se0.sid||')' = "User Session")
+order 	by nvl(se0.username,'ORACLE'), se0.sid
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="lrobjects" label=" Low Hit Ratio Objects Access "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	nvl(se0.USERNAME,'ORACLE PROC')||'('|| se0.SID||')' username,
+	OWNER,
+	OBJECT
+from 	v$access ac, v$session se0
+where 	ac.SID    = se0.SID
+and  	ac.TYPE   = 'TABLE'
+and 	60 < (
+	select 	"Hit Ratio" 
+	from
+(
+select nvl(se.USERNAME,'ORACLE PROC')||'('|| se.SID||')' "User Session",
+	sum(decode(NAME, 'consistent gets',value, 0))  "Consistent Gets",
+	sum(decode(NAME, 'db block gets',value, 0))  "DB Block Gets",
+	sum(decode(NAME, 'physical reads',value, 0))  "Physical Reads", 
+	(
+		(sum(decode(NAME, 'consistent gets',value, 0)) +
+		 sum(decode(NAME, 'db block gets',value, 0)) -
+		 sum(decode(NAME, 'physical reads',value, 0)))
+		/
+		(sum(decode(NAME, 'consistent gets',value, 0)) +
+		 sum(decode(NAME, 'db block gets',value, 0))) * 100) "Hit Ratio" 
+from 	v$sesstat ss, 
+	v$statname sn, 
+	v$session se
+where 	ss.SID = se.SID
+and	sn.STATISTIC# = ss.STATISTIC#
+and 	VALUE != 0
+and 	sn.NAME in ('db block gets', 'consistent gets', 'physical reads') 
+group 	by se.USERNAME, se.SID
+)
+	where 	nvl(se0.USERNAME,'ORACLE PROC')||'('|| se0.SID||')' = "User Session")
+order 	by USERNAME,se0.SID,OWNER
+
+             ]]></sql>
+        </view-def>
+    </view>
+</viewgroup>    
+<viewgroup id="sharedpools" name=" Shared Pool Information ">    
+    <view id="qckchk" label=" Quick Check "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 'You may need to increase the SHARED_POOL_RESERVED_SIZE' Description,
+       'Request Failures = '||REQUEST_FAILURES  Logic
+from 	v$shared_pool_reserved
+where 	REQUEST_FAILURES > 0
+and 	0 != (
+	select 	to_number(VALUE) 
+        from 	v$parameter 
+        where 	NAME = 'shared_pool_reserved_size')
+union
+select 'You may be able to decrease the SHARED_POOL_RESERVED_SIZE' Description,
+       'Request Failures = '||REQUEST_FAILURES Logic
+from 	v$shared_pool_reserved
+where 	REQUEST_FAILURES < 5
+and 	0 != ( 
+	select 	to_number(VALUE) 
+	from 	v$parameter 
+	where 	NAME = 'shared_pool_reserved_size')
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="memusage" label=" Memory Usage "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	NAME||' - '||TYPE object,
+	SHARABLE_MEM
+from 	v$db_object_cache
+where 	SHARABLE_MEM > 10000 
+and	type in ('PACKAGE','PACKAGE BODY','FUNCTION','PROCEDURE')
+order 	by SHARABLE_MEM desc
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="loads" label=" Loads "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	NAME||' - '||TYPE object,
+	LOADS
+from 	v$db_object_cache
+where 	LOADS > 3 
+and 	type in ('PACKAGE','PACKAGE BODY','FUNCTION','PROCEDURE')
+order 	by LOADS desc
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="executions" label=" Executions "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	NAME||' - '||TYPE object,
+	EXECUTIONS
+from 	v$db_object_cache
+where 	EXECUTIONS > 100 
+and 	type in ('PACKAGE','PACKAGE BODY','FUNCTION','PROCEDURE')
+order 	by EXECUTIONS desc
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="details" label=" Details "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	OWNER,
+	NAME,
+	DB_LINK,
+	NAMESPACE,
+	TYPE,
+        SHARABLE_MEM,
+        LOADS,
+        EXECUTIONS,
+        LOCKS,
+        PINS
+from 	v$db_object_cache
+order 	by OWNER, NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="libcachestats" label=" Library Cache Statistics "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	NAMESPACE,
+	GETS,
+	GETHITS,
+	round(GETHITRATIO*100,2) gethit_ratio,
+	PINS,
+	PINHITS,
+	round(PINHITRATIO*100,2) pinhit_ratio,
+	RELOADS,
+	INVALIDATIONS
+from 	v$librarycache
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="rsvpoolsett" label=" Reserve Pool Settings "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	NAME,
+	VALUE
+from 	v$parameter
+where 	NAME like '%reser%'
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="pinnedobj" label=" Pinned Objects "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	NAME,
+	TYPE,
+	KEPT
+from 	v$db_object_cache
+where 	KEPT = 'YES'
+             ]]></sql>
+        </view-def>
+    </view>
+    
+  </viewgroup>
+
+ <viewgroup id="tblsidx" name=" Hot Tables/Indexes ">
+    <view id="tblquest" label=" Tabs w/ Questionable Inds "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	TABLE_OWNER,
+	TABLE_NAME,
+	COLUMN_NAME
+from  	dba_ind_columns 
+where  	COLUMN_POSITION=1
+and  	TABLE_OWNER not in ('SYS','SYSTEM')
+group  	by TABLE_OWNER, TABLE_NAME, COLUMN_NAME
+having  count(*) > 1 
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="tbls3idx" label=" Tabs With More Than 3 Inds "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	TABLE_NAME,
+	COUNT(*) index_count
+from  	dba_indexes 
+where  	OWNER not in ('SYS','SYSTEM')
+group  	by OWNER, TABLE_NAME 
+having  COUNT(*) > 3 
+order 	by COUNT(*) desc, OWNER, TABLE_NAME ]]></sql>
+        </view-def>
+    </view>
+    <view id="tbl0idx" label=" Tables With No Indexes "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	TABLE_NAME
+from 
+(
+select 	OWNER, 
+	TABLE_NAME 
+from 	dba_tables
+minus
+select 	TABLE_OWNER, 
+	TABLE_NAME 
+from 	dba_indexes
+)
+orasnap_noindex
+where	OWNER not in ('SYS','SYSTEM')
+order 	by OWNER,TABLE_NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="tblnopk" label=" Tables With No PK "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select  OWNER,
+	TABLE_NAME
+from    dba_tables dt
+where   not exists (
+        select  'TRUE'
+        from    dba_constraints dc
+        where   dc.TABLE_NAME = dt.TABLE_NAME
+        and     dc.CONSTRAINT_TYPE='P')
+and 	OWNER not in ('SYS','SYSTEM')
+order	by OWNER, TABLE_NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="disconst" label=" Disabled Constraints "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select  OWNER,
+        TABLE_NAME,
+        CONSTRAINT_NAME,
+        decode(CONSTRAINT_TYPE, 'C','Check',
+                                'P','Primary Key',
+                                'U','Unique',
+                                'R','Foreign Key',
+                                'V','With Check Option') type,
+        STATUS 
+from 	dba_constraints
+where 	STATUS = 'DISABLED'
+order 	by OWNER, TABLE_NAME, CONSTRAINT_NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="fkconstdtl" label=" FK Constraints "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	c.OWNER,
+	c.TABLE_NAME,
+	c.CONSTRAINT_NAME,
+	cc.COLUMN_NAME,
+	r.TABLE_NAME,
+	rc.COLUMN_NAME,
+	cc.POSITION
+from 	dba_constraints c, 
+	dba_constraints r, 
+	dba_cons_columns cc, 
+	dba_cons_columns rc
+where 	c.CONSTRAINT_TYPE = 'R'
+and 	c.OWNER not in ('SYS','SYSTEM')
+and 	c.R_OWNER = r.OWNER
+and 	c.R_CONSTRAINT_NAME = r.CONSTRAINT_NAME
+and 	c.CONSTRAINT_NAME = cc.CONSTRAINT_NAME
+and 	c.OWNER = cc.OWNER
+and 	r.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
+and 	r.OWNER = rc.OWNER
+and 	cc.POSITION = rc.POSITION
+order 	by c.OWNER, c.TABLE_NAME, c.CONSTRAINT_NAME, cc.POSITION
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="fkidxprob" label=" FK Index Problems "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	acc.OWNER,
+	acc.CONSTRAINT_NAME,
+	acc.COLUMN_NAME,
+	acc.POSITION,
+	'No Index' Problem
+from   	dba_cons_columns acc, 
+	dba_constraints ac
+where  	ac.CONSTRAINT_NAME = acc.CONSTRAINT_NAME
+and   	ac.CONSTRAINT_TYPE = 'R'
+and     acc.OWNER not in ('SYS','SYSTEM')
+and     not exists (
+        select  'TRUE' 
+        from    dba_ind_columns b
+        where   b.TABLE_OWNER = acc.OWNER
+        and     b.TABLE_NAME = acc.TABLE_NAME
+        and     b.COLUMN_NAME = acc.COLUMN_NAME
+        and     b.COLUMN_POSITION = acc.POSITION)
+order   by acc.OWNER, acc.CONSTRAINT_NAME, acc.COLUMN_NAME, acc.POSITION ]]></sql>
+        </view-def>
+    </view>
+    <view id="inconscolname" label=" Inconsistent Column Names "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	COLUMN_NAME,
+	TABLE_NAME,
+	decode(DATA_TYPE, 'NUMBER', DATA_PRECISION, DATA_LENGTH) datatype
+from 	dba_tab_columns 
+where  	(COLUMN_NAME, OWNER) in
+		(select	COLUMN_NAME, 
+			OWNER
+	 	 from 	dba_tab_columns
+	 	 group	by COLUMN_NAME, OWNER
+	  	 having	min(decode(DATA_TYPE, 'NUMBER', DATA_PRECISION, DATA_LENGTH)) <
+		 	max(decode(DATA_TYPE, 'NUMBER', DATA_PRECISION, DATA_LENGTH)) )
+and 	OWNER not in ('SYS', 'SYSTEM')
+order	by COLUMN_NAME,DATA_TYPE  ]]></sql>
+        </view-def>
+    </view>
+    <view id="objextwarning" label=" Object Extent Warning "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	SEGMENT_NAME,
+	SEGMENT_TYPE,
+	TABLESPACE_NAME,
+	NEXT_EXTENT
+from (
+	select 	seg.OWNER, 
+		seg.SEGMENT_NAME,
+			seg.SEGMENT_TYPE, 
+		seg.TABLESPACE_NAME,
+			t.NEXT_EXTENT
+	from 	dba_segments seg,
+			dba_tables t
+	where 	(seg.SEGMENT_TYPE = 'TABLE'
+	and  	 seg.SEGMENT_NAME = t.TABLE_NAME
+	and  	 seg.owner = t.OWNER
+	and    NOT EXISTS (
+			select 	TABLESPACE_NAME
+				from 	dba_free_space free
+				where 	free.TABLESPACE_NAME = t.TABLESPACE_NAME
+				and 	BYTES >= t.NEXT_EXTENT))
+	union
+	select 	seg.OWNER, 
+		seg.SEGMENT_NAME,
+			seg.SEGMENT_TYPE, 
+		seg.TABLESPACE_NAME,
+			c.NEXT_EXTENT
+	from 	dba_segments seg,
+			dba_clusters c 
+	where  	(seg.SEGMENT_TYPE = 'CLUSTER'
+	and    	 seg.SEGMENT_NAME = c.CLUSTER_NAME
+	and    	 seg.OWNER = c.OWNER
+	and    	NOT EXISTS (
+			select 	TABLESPACE_NAME
+			from 	dba_free_space free
+			where 	free.TABLESPACE_NAME = c.TABLESPACE_NAME
+			and 	BYTES >= c.NEXT_EXTENT))
+	union
+	select 	seg.OWNER, 
+		seg.SEGMENT_NAME,
+			seg.SEGMENT_TYPE, 
+		seg.TABLESPACE_NAME,
+			i.NEXT_EXTENT
+	from 	dba_segments seg,
+			dba_indexes  i
+	where  	(seg.SEGMENT_TYPE = 'INDEX'
+	and    	 seg.SEGMENT_NAME = i.INDEX_NAME
+	and    	 seg.OWNER        = i.OWNER
+	and    	 NOT EXISTS (
+			select 	TABLESPACE_NAME
+					from 	dba_free_space free
+					where 	free.TABLESPACE_NAME = i.TABLESPACE_NAME
+			and 	BYTES >= i.NEXT_EXTENT))
+	union
+	select 	seg.OWNER, 
+		seg.SEGMENT_NAME,
+			seg.SEGMENT_TYPE, 
+		seg.TABLESPACE_NAME,
+			r.NEXT_EXTENT
+	from 	dba_segments seg,
+			dba_rollback_segs r
+	where  	(seg.SEGMENT_TYPE = 'ROLLBACK'
+	and    	 seg.SEGMENT_NAME = r.SEGMENT_NAME
+	and    	 seg.OWNER        = r.OWNER
+	and    	 NOT EXISTS (
+			select	TABLESPACE_NAME
+					from 	dba_free_space free
+					where 	free.TABLESPACE_NAME = r.TABLESPACE_NAME
+                and 	BYTES >= r.NEXT_EXTENT))
+)
+orasnap_objext_warn
+order 	by OWNER,SEGMENT_NAME
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="segfrag" label=" Segment Fragmentation "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	TABLESPACE_NAME,
+	SEGMENT_NAME,
+	SEGMENT_TYPE,
+	BYTES,
+	EXTENTS,
+	MAX_EXTENTS,
+	(EXTENTS/MAX_EXTENTS)*100 percentage
+from 	dba_segments
+where 	SEGMENT_TYPE in ('TABLE','INDEX')
+and 	EXTENTS > MAX_EXTENTS/2
+order 	by (EXTENTS/MAX_EXTENTS) desc ]]></sql>
+        </view-def>
+    </view>
+    <view id="extreachmax" label=" Extents reaching maximum "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select owner "Owner",
+       segment_name "Segment Name",
+       segment_type "Type",
+       tablespace_name "Tablespace",
+       extents "Ext",
+       max_extents "Max"
+from dba_segments
+where ((max_extents - extents) <= 3) 
+and owner not in ('SYS','SYSTEM')
+order by owner, segment_name
+
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="analyzed-tabls" label=" Analyzed Tables "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select	OWNER,
+	sum(decode(nvl(NUM_ROWS,9999), 9999,0,1)) analyzed,
+	sum(decode(nvl(NUM_ROWS,9999), 9999,1,0)) not_analyzed,
+	count(TABLE_NAME) total
+from 	dba_tables
+where 	OWNER not in ('SYS', 'SYSTEM')
+group 	by OWNER
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="recentlyanatabls" label=" Recently Analyzed Tables "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	TABLE_NAME,
+	to_char(LAST_ANALYZED,'MM/DD/YYYY HH24:MI:SS') last_analyzed
+from 	dba_tab_columns
+where 	OWNER not in ('SYS','SYSTEM')
+and 	LAST_ANALYZED is not null
+and	COLUMN_ID=1
+and 	(SYSDATE-LAST_ANALYZED) < 30
+order	by last_analyzed
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="cachedtabl" label=" Cached Tables "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	OWNER,
+	TABLE_NAME,
+	CACHE
+from dba_tables
+where OWNER not in ('SYS','SYSTEM')
+and CACHE like '%Y'
+order by OWNER,TABLE_NAME
+             ]]></sql>
+        </view-def>
+    </view>
+  </viewgroup>
+ 
+ <viewgroup id="hitmissratio" name=" Hit/Miss Ratios ">
+    <view id="buffhitratio" label=" Buffer Hit Ratio "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	sum(decode(NAME, 'consistent gets',VALUE, 0)) "Consistent Gets",
+	sum(decode(NAME, 'db block gets',VALUE, 0)) "DB Block Gets",
+	sum(decode(NAME, 'physical reads',VALUE, 0)) "Physical Reads",
+	round((sum(decode(name, 'consistent gets',value, 0)) + 
+	       sum(decode(name, 'db block gets',value, 0)) - 
+	       sum(decode(name, 'physical reads',value, 0))) / 
+	      (sum(decode(name, 'consistent gets',value, 0)) + 
+	       sum(decode(name, 'db block gets',value, 0))) * 100,2) "Hit Ratio"
+from   v$sysstat
+             ]]></sql>
+        </view-def>
+    </view>
+        <view id="datadictratio" label=" Data Dict Hit Ratio "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	sum(GETS),
+	sum(GETMISSES),
+	round((1 - (sum(GETMISSES) / sum(GETS))) * 100,2)
+from 	v$rowcache
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="sqlhitratio" label=" SQL Cache Hit Ratio "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	sum(PINS) Pins,
+	sum(RELOADS) Reloads,
+	round((sum(PINS) - sum(RELOADS)) / sum(PINS) * 100,2) Hit_Ratio
+from 	v$librarycache
+             ]]></sql>
+        </view-def>
+    </view>
+    <view id="libcachemissratio" label=" Library Cache Miss Ratio "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ select 	sum(PINS) Executions,
+	sum(RELOADS) cache_misses,
+	sum(RELOADS) / sum(PINS) miss_ratio
+from 	v$librarycache
+             ]]></sql>
+        </view-def>
+    </view>
+    
+  </viewgroup>
+
+<viewgroup id="DBObjects" name=" DB Objects">
+    <view id="Triggers" label=" Triggers "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select 	TABLE_OWNER,
+	TABLE_NAME,
+	TRIGGER_NAME,
+	TRIGGER_TYPE,
+	TRIGGERING_EVENT,
+	STATUS
+from 	dba_triggers
+order 	by TABLE_NAME, TRIGGER_NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+
+    <view id="Clusters" label=" Clusters "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[
+select 	a.OWNER,
+	TABLESPACE_NAME,
+	a.CLUSTER_NAME,
+	TABLE_NAME,
+	TAB_COLUMN_NAME,
+	CLU_COLUMN_NAME
+from 	dba_clusters a, dba_clu_columns b
+where	a.CLUSTER_NAME = b.CLUSTER_NAME
+order 	by a.OWNER,TABLESPACE_NAME,a.CLUSTER_NAME,TABLE_NAME
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Sequences" label=" Sequences "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select 	SEQUENCE_OWNER,
+	SEQUENCE_NAME,
+	MIN_VALUE,
+	MAX_VALUE,
+	INCREMENT_BY,
+	CYCLE_FLAG,
+	ORDER_FLAG,
+	CACHE_SIZE,
+	LAST_NUMBER
+from  	dba_sequences
+where	SEQUENCE_OWNER not in ('SYS','SYSTEM')
+order 	by SEQUENCE_OWNER,SEQUENCE_NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Jobs" label=" Jobs "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[
+select 	LOG_USER,
+	SCHEMA_USER schema,
+	JOB job#,
+	INTERVAL,
+	to_char(NEXT_DATE,'MM/DD/YYYY HH24:MI:SS') next_execution,
+	BROKEN,
+	substr(WHAT,1,100) what
+from 	dba_jobs
+order 	by LOG_USER
+               
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Snapshots" label=" Snapshots "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select 
+OWNER,
+	NAME,
+	TABLE_NAME,
+	MASTER_VIEW,
+	MASTER_OWNER,
+	MASTER,
+	MASTER_LINK,
+	CAN_USE_LOG,
+	UPDATABLE,
+	LAST_REFRESH,
+	ERROR,
+	TYPE,
+	NEXT,
+	REFRESH_GROUP
+from  	dba_snapshots
+order 	by OWNER,NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Synonyms" label=" Synonyms "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[
+select	OWNER,
+	SYNONYM_NAME,
+	TABLE_OWNER,
+	TABLE_NAME,
+	DB_LINK
+from  	dba_synonyms
+where	owner not in ('SYS','SYSTEM','PUBLIC','DBSNMP')
+order 	by OWNER,SYNONYM_NAME
+                
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Links" label=" Links "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[
+select 	OWNER,
+	DB_LINK,
+	USERNAME,
+	HOST,
+	to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created
+from  	dba_db_links
+order	by OWNER,DB_LINK
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Views" label=" Views "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select 	OWNER,
+	OBJECT_NAME,
+	to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created,
+	status
+from  	dba_objects
+where	OWNER not in ('SYS','SYSTEM')
+and	OBJECT_TYPE='VIEW'
+order	by OWNER,OBJECT_NAME
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="Tables" label=" Tables "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select 	OWNER,
+	OBJECT_NAME,
+	to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created,
+	status
+from  	dba_objects
+where	OWNER not in ('SYS','SYSTEM')
+and	OBJECT_TYPE='TABLE'
+order	by OWNER,OBJECT_NAME
+                ]]></sql>
+        </view-def>
+    </view>
+
+    <view id="Index" label=" Index "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select 	OWNER,
+	OBJECT_NAME,
+	to_char(CREATED,'MM/DD/YYYY HH24:MI:SS') created,
+	status
+from  	dba_objects
+where	OWNER not in ('SYS','SYSTEM')
+and	OBJECT_TYPE='INDEX'
+order	by OWNER,OBJECT_NAME
+                ]]></sql>
+        </view-def>
+    </view>
+    <view id="ProcsPkgs" label=" Procedures and Packages "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[ 
+select	OWNER,
+	NAME,
+	TYPE
+from  	dba_source
+group	by OWNER,NAME,TYPE
+order 	by OWNER,NAME,TYPE
+                ]]></sql>
+        </view-def>
+    </view>
+  </viewgroup>
+  
+  
+ <!-- Skeleton for copy & paste 
+ <viewgroup id="" name="  ">
+    <view id="" label="  "> 
+        <view-def  type="sql" subtype="select">
+            <sql type="static"><![CDATA[  ]]></sql>
+        </view-def>
+    </view>
+  </viewgroup>
+  -->
+  
+</S3ViewFounder>

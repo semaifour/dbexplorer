@@ -1,0 +1,87 @@
+<S3ViewFounder>
+	<viewgroup id="sqlsample" name="SQL Samples">
+		<view id="staticsample" label="Static View Sample">
+			<view-def  type="sql" subtype="select">
+				<sql type="static"> select * from transaction where
+					type = 'ABC' and transaction_code is null </sql>
+			</view-def>
+		</view>
+		<view id="inputsample" label="Dynamic View Sample">
+			<view-def  type="sql" subtype="select">
+				<sql type="parameterized"> select * from transaction where
+					transaction_type = ''{0}'' and master_transaction_id is null
+				</sql>
+				<parameters>
+					<input id="type" sqlparamidx="0" label="TXN Type" type="text"
+						default=""></input>
+				</parameters>
+			</view-def>
+		</view>
+		<view id="optionsample1" label="Param'zed View Sample 1">
+			<view-def  type="sql" subtype="select">
+				<sql type="parameterized"> select * from transaction where
+					type
+					= ''{0}'' and transaction_code is null and status = ''{1}''
+				</sql>
+				<parameters>
+					<input id="1" sqlparamidx="0" label="Type" type="options"
+						default="ABC">
+						<options>
+							<option id="1" label="ABC" value="ABC"></option>
+							<option id="2" label="DEF" value="DEF"></option>
+							<option id="3" label="GHI" value="GHI"></option>
+							<option id="4" label="XYZ" value="XYZ"></option>
+						</options>
+					</input>
+					<input id="2" sqlparamidx="1" label="Status" type="options"
+						default="ACTIVE">
+						<options>
+							<option id="1" label="PENDING" value="PENDING"></option>
+							<option id="2" label="COMPLETE" value="COMPLETE"></option>
+							<option id="2" label="CLOSED" value="CLOSED"></option>
+							<option id="2" label="CANCELLED" value="CANCELLED"></option>
+							<option id="2" label="RELEASED" value="RELEASED"></option>
+						</options>
+					</input>
+				</parameters>
+			</view-def>
+		</view>
+		<view id="optionsample" label="Param'zed View 2">
+			<view-def  type="sql" subtype="select">
+				<sql type="dynamic">select * from transaction txn
+					where </sql>
+				<parameters>
+					<input id="1" sqlparamidx="0" label="Order No" type="text"
+						default="ABC" cardinality="single">
+						<where-condition> txn.transaction_id = {0} </where-condition>
+					</input>
+					<input id="2" sqlparamidx="0" label="Order Type" type="options"
+						default="ABC">
+						<options>
+							<option id="1" label="Any" value=""></option>
+							<option id="2" label="ABC" value="ABC"></option>
+							<option id="3" label="DEF" value="DEF"></option>
+							<option id="4" label="GHI" value="GHI"></option>
+							<option id="5" label="XYZ" value="XYZ"></option>
+						</options>
+						<where-condition> txn.transaction_type like ''%{0}%'' </where-condition>
+            </input>
+        </parameters>
+        </view-def>
+    </view>
+ 	</viewgroup>
+    
+	<viewgroup id="httpsamples" name="HTTP Samples">
+		<view id="httpsample1" label="Static View Sample 1">
+			<view-def  type="http" subtype="get">
+				<url method="get">http://news.google.com</url>
+			</view-def>
+		</view>
+		<view id="httpsample2" label="Static View Sample 2">
+			<view-def  type="http" subtype="get">
+				<url method="get">lsdss.do</url>
+			</view-def>
+		</view>
+	</viewgroup>
+	
+</S3ViewFounder>

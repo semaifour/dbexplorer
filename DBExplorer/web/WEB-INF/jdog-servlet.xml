@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans>
+
+
+     <!-- ================ JDOG PROPERTY CONFIGURER ========= -->
+
+	<bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>WEB-INF/mail.properties</value>
+				<value>WEB-INF/jdbc.properties</value>
+				<value>WEB-INF/jdog.properties</value>
+			</list>
+		</property>
+	</bean>
+
+    <!-- ================   Default DataSource Configuration   ========= -->
+
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="${jdbc.driverClassName}"/>
+		<property name="url" value="${jdbc.url}"/>
+		<property name="username" value="${jdbc.username}"/>
+		<property name="password" value="${jdbc.password}"/>
+	</bean>
+
+    <!--====== Transaction manager for a single JDBC DataSource ==== -->
+
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
+    <!-- ============ VIEW RESOLVER Configuration ========== -->
+ 
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass"><value>org.springframework.web.servlet.view.JstlView</value></property>
+        <property name="prefix"><value>/WEB-INF/jsp/</value></property>
+        <property name="suffix"><value>.jsp</value></property>
+    </bean>
+
+    <!-- ========= JDOG Service Bean Configuration ========= -->
+
+    <bean id="JDOGService" class="s3tool.jdog.biz.service.JDOGService" init-method="initialize">
+  
+      <property name="DAOFactory">
+            <ref bean="DAOFactory" />
+        </property>
+
+        <property name="dataSourceConfiguration">
+            <ref bean="DataSourceConfiguration" />
+        </property>
+
+        <property name="abstractDAOFactory">
+            <ref bean="AbstractDAOFactory" />
+        </property>
+
+        <property name="defaultDataSource">
+            <ref bean="dataSource"/>
+        </property>		
+
+    </bean>
+    
+     <bean id="JDOGContext" class="s3tool.jdog.biz.service.JDOGContext">
+      <property name="JDOGService">
+            <ref bean="JDOGService"/>
+        </property>
+        <property name="viewConfigurationService">
+            <ref bean="ViewConfigurationService"/>
+        </property> 
+    </bean>
+
+    <bean id="ViewConfigurationService" class="com.silrais.sss.viewfounder.biz.service.ViewConfigurationService">
+        <property name="customViewDAO">
+            <list>
+                <ref bean="DefaultCustomViewDAO"/>
+                <ref bean="DBANavigationCustomViewDAO"/>
+                <ref bean="DBOListItemsDAO"/>
+            </list>
+        </property>
+    </bean>
+
+    <!--  ================ Action Controller Bean Configurations =================== -->
+
+    <bean id="JSPController" class="com.silrais.webtoolkit.controller.SimpleSpringJSPActionController">
+    </bean>
+    
+    <bean id="DatabaseObjectListController" class="s3tool.jdog.web.controller.DatabaseObjectListController">
+    </bean>
+
+    <bean id="DBOJSONListController" class="s3tool.jdog.web.controller.DBOJSONListController">
+        <property name="customDBOList">
+            <list>
+                <value>Triggers</value>
+                <value>Clusters</value>
+                <value>Synonyms</value>
+                <value>Jobs</value>
+                <value>Snapshots</value>
+                <value>Sequences</value>
+                <value>Links</value>
+            </list>
+        </property>
+		<property name="viewConfig4CustomDBOList" value="${jdog.dbo-list.items.setup.file}"/>
+    </bean>
+    
+    <bean id="ColumnDetailController" class="s3tool.jdog.web.controller.ColumnDetailController">
+    </bean>
+
+    <bean id="TableDataViewController" class="s3tool.jdog.web.controller.TableDataViewController">
+        <property name="maxRecordCountPerPage">
+            <value>25</value>
+        </property>
+        <property name="downloadController">
+            <ref bean="SimpleDataSetDownloadController"/>
+        </property>
+    </bean>
+
+    <bean id="ExecuteQueryController" class="s3tool.jdog.web.controller.ExecuteQueryController">
+        <property name="maxRecordCountPerPage">
+            <value>25</value>
+        </property>
+    </bean>
+
+    <bean id="RowsDetailViewController" class="s3tool.jdog.web.controller.RowsDetailViewController">
+    </bean>
+
+    <bean id="ReferentialKeyDetailController" class="s3tool.jdog.web.controller.ReferentialKeyDetailController">
+    </bean>
+
+    <bean id="ReferentialDataDetailController" class="s3tool.jdog.web.controller.ReferentialDataDetailController">
+    </bean>
+
+    <bean id="QueryHistoryController" class="s3tool.jdog.web.controller.QueryHistoryController">
+    </bean>
+    
+    <bean id="MetaDataListController" class="s3tool.jdog.web.controller.MetaDataListController">
+    </bean>
+
+    <bean id="IndexViewController" class="s3tool.jdog.web.controller.IndexViewController">
+    </bean>
+    <bean id="CustomViewController" class="s3tool.jdog.web.controller.CustomViewController">
+    </bean>
+
+    <bean id="CustomSQLViewController" class="s3tool.jdog.web.controller.CustomSQLViewController">
+    </bean>
+    
+        <bean id="CustomHTTPViewController" class="s3tool.jdog.web.controller.CustomHTTPViewController">
+    </bean>
+    
+    <bean id="CustomViewMenuController" class="s3tool.jdog.web.controller.CustomViewMenuController">
+    </bean>
+
+    <bean id="SchemaListController" class="s3tool.jdog.web.controller.SchemaListController">
+    </bean>
+    
+    <bean id="DataSourceConnectionController" class="s3tool.jdog.web.controller.DataSourceConnectionController">
+    </bean>
+    
+    <bean id="DataSourceListController" class="s3tool.jdog.web.controller.DataSourceListController">
+     </bean>
+ 
+    <bean id="ActionHistoryController" class="s3tool.jdog.web.controller.ActionHistoryController"> </bean>
+     
+    <bean id="Main" class="s3tool.jdog.web.controller.Main"> </bean>
+
+  	<bean id="SimpleCommaSVDataSetWriter" class="com.silrais.toolkit.dataset.io.SimpleCSVDataSetWriter">
+      	<property name="delimiter" value=","> </property>
+  	</bean>
+
+
+    <bean id="SimpleDataSetDownloadController" class="com.silrais.webtoolkit.controller.io.SimpleDataSetDownloadController">
+           <property name="dataSetWriters">
+            <map>
+                <entry key="default"> <ref bean="SimpleTabSVDataSetWriter"/> </entry>
+                <entry key="csv-comma"> <ref bean="SimpleCommaSVDataSetWriter"/> </entry>
+                <entry key="csv-tab"> <ref bean="SimpleTabSVDataSetWriter"/> </entry>
+                <entry key="xml"> <ref bean="SimpleXMLDataSetWriter"/> </entry>
+ 				<entry key="json"> <ref bean="SimpleJSONDataSetWriter"/> </entry>
+            </map>
+        </property>
+    </bean>
+
+	<!--  ============ DataSet Writer Bean Configuration ======================= -->
+    <bean id="SimpleTabSVDataSetWriter" class="com.silrais.toolkit.dataset.io.SimpleCSVDataSetWriter"/>
+
+	<bean id="SimpleXMLDataSetWriter" class="com.silrais.toolkit.dataset.io.SimpleXMLDataSetWriter"/>
+	  
+	<bean id="SimpleJSONDataSetWriter" class="com.silrais.toolkit.dataset.io.SimpleJSONDataSetWriter"/>
+
+
+	<!--  ================= DAO Bean Configuration ============== -->
+	
+    <bean id="SQLServerMetaDataDAO" class="s3tool.jdog.biz.rdb.dao.jdbc.SQLServerMetaDataDAOImpl">
+        <property name="dataSource">
+            <ref bean="dataSource"/>
+        </property>
+    </bean>
+
+     <bean id="SQLServerTableDataDAO" class="s3tool.jdog.biz.rdb.dao.jdbc.SQLServerTableDataDAOImpl">
+        <property name="dataSource">
+            <ref bean="dataSource"/>
+        </property>
+    </bean>
+
+  <bean id="MySQLMetaDataDAO" class="s3tool.jdog.biz.rdb.dao.jdbc.MySQLMetaDataDAOImpl">
+        <property name="dataSource">
+            <ref bean="dataSource"/>
+        </property>
+    </bean>
+
+     <bean id="MySQLTableDataDAO" class="s3tool.jdog.biz.rdb.dao.jdbc.MySQLTableDataDAOImpl">
+        <property name="dataSource">
+            <ref bean="dataSource"/>
+        </property>
+    </bean>
+
+	<bean id="OracleMetaDataDAO" class="s3tool.jdog.biz.rdb.dao.jdbc.OracleMetaDataDAOImpl">
+        <property name="dataSource">
+            <ref bean="dataSource"/>
+        </property>
+    </bean>
+
+     <bean id="OracleTableDataDAO" class="s3tool.jdog.biz.rdb.dao.jdbc.OracleTableDataDAOImpl">
+        <property name="dataSource">
+            <ref bean="dataSource"/>
+        </property>
+    </bean>
+
+     <bean id="OracleDAOFactory" class="s3tool.jdog.biz.rdb.dao.DAOFactoryImpl">
+        <property name="metaDataDAO">
+            <ref bean="OracleMetaDataDAO"/>
+        </property>
+        <property name="tableDataDAO">
+            <ref bean="OracleTableDataDAO"/>
+        </property>
+    </bean>
+
+     <bean id="MySQLDAOFactory" class="s3tool.jdog.biz.rdb.dao.DAOFactoryImpl">
+        <property name="metaDataDAO">
+            <ref bean="MySQLMetaDataDAO"/>
+        </property>
+        <property name="tableDataDAO">
+            <ref bean="OracleTableDataDAO"/>
+        </property>
+    </bean>
+
+     <bean id="SQLServerDAOFactory" class="s3tool.jdog.biz.rdb.dao.DAOFactoryImpl">
+        <property name="metaDataDAO">
+            <ref bean="SQLServerMetaDataDAO"/>
+        </property>
+        <property name="tableDataDAO">
+            <ref bean="SQLServerTableDataDAO"/>
+        </property>
+    </bean>
+
+     <bean id="AbstractDAOFactory" class="s3tool.jdog.biz.rdb.dao.AbstractDAOFactory">
+        <property name="oracleDAOFactory">
+            <ref bean="OracleDAOFactory"/>
+        </property>
+        <property name="MYSQLDAOFactory">
+            <ref bean="MySQLDAOFactory"/>
+        </property>
+        <property name="SQLServerDAOFactory">
+            <ref bean="SQLServerDAOFactory"/>
+        </property>
+    </bean>
+
+	<bean id="DAOFactory" class="s3tool.jdog.biz.rdb.dao.DAOFactory">
+ <!--
+		<property name="DAOTypeList">
+			<list>
+				<ref bean="MetaDataDAO" />
+				<ref bean="TableDataDAO" />
+			</list>
+		</property>
+        <property name="defaultDataSource">
+            <ref bean="dataSource"/>
+        </property>		
+	-->
+	</bean>
+	
+    <bean id="DefaultCustomViewDAO" class="com.silrais.sss.viewfounder.biz.dao.xml.CustomConfigDAOImpl">
+		<property name="configFile" value="${jdog.custom.config.file}"/>
+    </bean>
+    <bean id="DBANavigationCustomViewDAO" class="com.silrais.sss.viewfounder.biz.dao.xml.CustomConfigDAOImpl">
+		<property name="configFile" value="${jdog.dba-navigation.setup.file}"/>
+    </bean>
+    <bean id="DBOListItemsDAO" class="com.silrais.sss.viewfounder.biz.dao.xml.CustomConfigDAOImpl">
+		<property name="configFile" value="${jdog.dbo-list.items.setup.file}"/>
+    </bean>
+
+	<bean id="PropertiesConfigLoader" class="com.silrais.sss.configuration.biz.dac.PropertiesConfigurationDACImpl"/>
+
+	<bean id="ConfigurationManager" class="com.silrais.sss.configuration.biz.ConfigurationManager">
+		<property name="configurationDataAccessControllers">
+			<map>
+				<entry key="properties"><ref bean="PropertiesConfigLoader"/></entry>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="DataSourceConfiguration" class="s3tool.jdog.biz.datasource.DataSourceConfiguration">
+		<property name="configurationManager">
+			<ref bean="ConfigurationManager"/>
+		</property>
+	</bean>
+	
+
+	<!--  ================ URL Mappings ======================== -->
+	
+    <bean id="urlMapping" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+        <property name="mappings"> 
+            <props>
+                <prop key="/explore.do">Main</prop>
+                <prop key="/exejsp.do">JSPController</prop>
+                <prop key="/showdbolist.do">DatabaseObjectListController</prop>
+                <prop key="/exeqry.do">ExecuteQueryController</prop>
+                <prop key="/qryhist.do">QueryHistoryController</prop>
+                <prop key="/showrefdatalists.do">ReferentialDataDetailController</prop>
+                <prop key="/showcoldtl.do">ColumnDetailController</prop>
+                <prop key="/showtabdata.do">TableDataViewController</prop>
+                <prop key="/showrowdtl.do">RowsDetailViewController</prop>
+                <prop key="/showrefkeylists.do">ReferentialKeyDetailController</prop>
+                <prop key="/browserowrefdata.do">JSPController</prop>
+                <prop key="/showcntfrmhdr.do">JSPController</prop>
+                <prop key="/showrefdatalists.do">ReferentialDataDetailController</prop>
+                <prop key="/showdbmdlist.do">MetaDataListController</prop>
+                <prop key="/showidxlist.do">IndexViewController</prop>
+                <prop key="/showcv.do">CustomViewController</prop>
+                <prop key="/showsqlcv.do">CustomSQLViewController</prop>
+                <prop key="/showhttpcv.do">CustomHTTPViewController</prop>
+                <prop key="/showaxnhistlist.do">ActionHistoryController</prop>
+                <prop key="/loadaxnurl.do">ActionHistoryController</prop>
+                <prop key="/showcustviewmenu.do">CustomViewMenuController</prop>
+                <prop key="/getdbolist.do">DBOJSONListController</prop>
+                <prop key="/showschemalist.do">SchemaListController</prop>
+                <prop key="/downloadsds.do">SimpleDataSetDownloadController</prop>
+                <prop key="/connect.do"> DataSourceConnectionController </prop>
+                <prop key="/lsdss.do">DataSourceListController</prop>
+            </props>
+        </property>
+    </bean>
+
+</beans>

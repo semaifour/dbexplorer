@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<project name="Commons" basedir="." default="usage">
+    <target name="usage">
+        <echo message="" />
+        <echo message="Available targets are:" />
+        <echo message="" />
+        <echo message="build 	--> to build and package commons" />
+        <echo message="clean     --> to clean up projec build environment" />
+        <echo message="" />
+    </target>
+
+    <target name="build" description="Compiles project source">
+        <ant antfile="build.xml" dir="./Toolkit" target="init" />
+        <ant antfile="build.xml" dir="./Toolkit" target="build" />
+        <ant antfile="build.xml" dir="./Toolkit" target="release" />
+
+        <ant antfile="build.xml" dir="./LicenseManager" target="init" />
+        <ant antfile="build.xml" dir="./LicenseManager" target="build" />
+        <ant antfile="build.xml" dir="./LicenseManager" target="release" />
+
+        <ant antfile="build.xml" dir="./WebToolkit" target="init" />
+        <ant antfile="build.xml" dir="./WebToolkit" target="build" />
+        <ant antfile="build.xml" dir="./WebToolkit" target="release" />
+
+        <ant antfile="build.xml" dir="./XMLPanther" target="init" />
+        <ant antfile="build.xml" dir="./XMLPanther" target="build" />
+        <ant antfile="build.xml" dir="./XMLPanther" target="release" />
+
+        <ant antfile="build.xml" dir="./ViewFounder" target="init" />
+        <ant antfile="build.xml" dir="./ViewFounder" target="build" />
+        <ant antfile="build.xml" dir="./ViewFounder" target="release" />
+
+        <ant antfile="build.xml" dir="./ConfigurationManager" target="init" />
+        <ant antfile="build.xml" dir="./ConfigurationManager" target="build" />
+        <ant antfile="build.xml" dir="./ConfigurationManager" target="release" />
+    </target>
+
+   <target name="clean" description="Cleans up project build environment">
+    <ant antfile="build.xml" dir="./Toolkit" target="clean-all" />
+    <ant antfile="build.xml" dir="./LicenseManager" target="clean-all" />
+    <ant antfile="build.xml" dir="./WebToolkit" target="clean-all" />
+    <ant antfile="build.xml" dir="./XMLPanther" target="clean-all" />
+    <ant antfile="build.xml" dir="./ViewFounder" target="clean-all" />
+    <ant antfile="build.xml" dir="./ConfigurationManager" target="clean-all" />
+   </target>
+</project>

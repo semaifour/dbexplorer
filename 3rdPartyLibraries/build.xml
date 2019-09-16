@@ -1,0 +1,185 @@
+<?xml version="1.0"?>
+<project name="jdog" basedir="." default="usage">
+    <property file="build.properties" />
+    <property name="version" value="${project.version}" />
+	<property name="root.dir" value="./"/>
+	<property name="java.build.dir" value="${root.dir}/web/WEB-INF/classes" />
+    <property name="name" value="jdog"/>
+    <property name="name.mysql" value="jdog-mysql"/>
+    <property name="jsp.build.dir" value="${root.dir}/web/WEB-INF/jspbuild"/>
+        
+    <path id="master-classpath">
+        <fileset dir="${root.dir}/web/WEB-INF/lib">
+            <include name="*.jar"/> 
+        </fileset>   
+        <!-- We need the servlet API classes:        -->
+        <!--   for Tomcat 4.1 use servlet.jar        -->  
+        <!--   for Tomcat 5.0 use servlet-api.jar    -->   
+        <!--   for Other app server - check the docs -->     
+        <fileset dir="${tomcat.lib}">   
+            <include name="servlet*.jar"/>  
+        </fileset>        
+        <pathelement path="${java.build.dir}"/> 
+    </path>
+
+
+    <target name="usage">
+        <echo message="" />
+        <echo message="./jdog$ ant $target" />
+        <echo message="" />
+        <echo message="Available targets are:" />
+        <echo message="" />
+        <echo message="init      --> initializes build environmet." />
+        <echo message="build     --> builds application" />
+        <echo message="clean     --> cleans up resources;can be rebuilt" />
+        <echo message="release   --> builds WAR file; ready for deployment" />
+        <echo message="" />
+    </target>
+    
+   <target name="init" depends="copy-config"/>
+	
+    <target name="build" depends="init" description="Compile main source tree java files">
+        <mkdir dir="${java.build.dir}" />
+        <javac destdir="${java.build.dir}" target="1.5" source="1.5" debug="true" deprecation="false" optimize="false" failonerror="true">
+            <src path="${root.dir}/src" />
+            <classpath refid="master-classpath" />
+        </javac>
+    </target>
+
+    <target name="clean" description="Cleans resources that can be re-built ">
+        <delete includeemptydirs="true">
+            <fileset dir="${java.build.dir}" includes="**/*.*"/>
+            <fileset dir="${jsp.build.dir}" includes="**/*.*"/>
+            <fileset dir="${root.dir}/release" includes="*.war"/>
+            <fileset dir="${root.dir}/web/WEB-INF/lib" includes="${name}_${version}.jar"/>
+            <fileset dir="${root.dir}/web/WEB-INF" includes="web.xml"/>
+            <fileset dir="${root.dir}/web/WEB-INF" includes="jdbc.properties"/>
+        </delete> 
+    </target>
+
+
+    <target name="deploy" depends="build,copy-config" description="Deploy application">
+        <copy todir="${deploy.path}/${name}" preservelastmodified="true">
+            <fileset dir="${root.dir}/web">
+                <include name="**/*.*" />
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="deploy-mysql" depends="build" description="Deploy application">
+        <copy todir="${deploy.path}/${name.mysql}" preservelastmodified="true">
+            <fileset dir="${root.dir}/web">
+                <include name="**/*.*" />
+            </fileset>
+        </copy>
+        <delete file="${deploy.path}/${name.mysql}/WEB-INF/jdbc.properties" />
+        <move file="${deploy.path}/${name.mysql}/WEB-INF/jdbc-mysql.properties" tofile="${deploy.path}/${name.mysql}/WEB-INF/jdbc.properties"/>
+    </target>
+
+    <target name="copy-config" 	description="Copy xml config files to classes dir">
+        <copy todir="${root.dir}/web/WEB-INF/classes">
+            <fileset dir="${root.dir}/config">
+                <include name="jdog-*.xml"/>
+            </fileset>
+        </copy>
+        <copy todir="${root.dir}/web/WEB-INF">
+            <fileset dir="${root.dir}/config">
+                <include name="web.xml"/>
+                <include name="jdbc.properties"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="create-jar" depends="build,jspbuild" description="create jar file">
+            <jar destfile="${root.dir}/web/WEB-INF/lib/${name}_${version}.jar">
+                <fileset dir="${java.build.dir}">
+                    <include name="**/*.*" />
+                </fileset>
+            </jar>
+    </target>
+
+	<target name="copy-dependency" description="copies dependencies into lib">
+	    <copy todir="${root.dir}/web/WEB-INF/lib">
+	        <fileset dir="${root.dir}/../toolkit/release">
+	               <include name="*.jar"/>
+	        </fileset>
+	    </copy>
+	</target>
+	
+	<target name="clean-classes">
+		<delete includeemptydirs="true">
+            <fileset dir="${java.build.dir}" includes="**/*.class"/>
+        </delete>
+	</target>
+        
+    <target name="buildwar" depends="build"	description="Deploy application as a WAR file">
+        <war destfile="release/${name}.war" webxml="${root.dir}/web/WEB-INF/web.xml">
+            <fileset dir="${root.dir}/web">
+                <exclude name="**\jsp\*.*" />
+                <exclude name="**\${jsp.build.dir}\*.*" />
+                <include name="**\*.*" />
+            </fileset>
+        </war>
+    </target>
+        
+    <target name="deploywar" depends="buildwar"	description="Deploy application as a WAR file">
+            <copy todir="${deploy.path}">
+                <fileset dir="release">
+                    <include name="*.war" />
+                </fileset>
+            </copy>
+    </target>
+        
+
+    <target name="jspc"> 
+        <taskdef classname="org.apache.jasper.JspC" name="jasper2" > 
+          <classpath id="jspc.classpath"> 
+            <pathelement location="${java.lib}/tools.jar"/> 
+            <fileset dir="${tomcat.lib}"> 
+              <include name="*.jar"/> 
+            </fileset> 
+            <fileset dir="${tomcat.home}/bin"> 
+              <include name="*.jar"/> 
+            </fileset> 
+          </classpath> 
+        </taskdef> 
+
+        <jasper2 
+                 validateXml="false" 
+                 uriroot="${root.dir}/web" 
+                 webXmlFragment="${root.dir}/web/WEB-INF/generated_web.xml" 
+                 outputDir="${jsp.build.dir}/src" addWebXmlMappings="true"
+                 package="com.silrais.jdog.jsp"
+        /> 
+
+    </target> 
+
+    <target name="jspcompile">
+        <javac destdir="${java.build.dir}"
+                optimize="off"
+                debug="on" failonerror="false"
+                target="1.5" source="1.5"
+                srcdir="${jsp.build.dir}/src" 
+                excludes="**/*.smap">
+            <classpath>
+                <pathelement path="${java.build.dir}"/> 
+                <fileset dir="${root.dir}/web/WEB-INF/lib">
+                    <include name="*.jar"/>
+                </fileset>
+                <fileset dir="${tomcat.lib}">
+                    <include name="*.jar"/>
+                </fileset>
+                <fileset dir="${tomcat.home}/bin"> 
+                    <include name="*.jar"/> 
+                </fileset> 
+            </classpath>
+            <include name="**" />
+            <exclude name="tags/**" />
+        </javac>
+    </target>
+
+    <target name="jspbuild" depends="jspc,jspcompile"/> 
+
+    <target name="release" depends="build,jspbuild,create-jar,clean-classes,buildwar"/>
+
+</project>

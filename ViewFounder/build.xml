@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<project name="ViewFounder" basedir="." default="usage">
+    <property file="build.properties" />
+	<property name="root.dir" value="." />
+	<property name="workspace.dir" value=".." />
+
+	<property name="name" value="${project.name}" />
+    <property name="version" value="${project.version}" />
+	<property name="build.dir" value="${workspace.dir}/build" />
+	<property name="project.build.dir" value="${build.dir}/${name}" />
+
+	<path id="master-classpath">
+        <fileset dir="${workspace.dir}/3rdPartyLibraries/lib">
+            <include name="*.jar"/> 
+        </fileset>
+        <fileset dir="${workspace.dir}/build/Toolkit/release">
+            <include name="*.jar"/> 
+        </fileset>
+        <fileset dir="${workspace.dir}/build/XMLPanther/release">
+            <include name="*.jar"/> 
+        </fileset>
+  	</path>
+
+    <target name="usage">
+        <echo message="" />
+        <echo message="Available targets are:" />
+        <echo message="" />
+        <echo message="build     --> to build project" />
+        <echo message="clean-[all|class|release]     --> to clean up projec build environment" />
+        <echo message="release   --> to create release package " />
+        <echo message="" />
+    </target>
+    
+	<target name="init">
+        <mkdir dir="${build.dir}" />
+        <mkdir dir="${project.build.dir}" />
+        <mkdir dir="${project.build.dir}/classes" />
+		<mkdir dir="${project.build.dir}/release" />		
+	</target>
+	
+    <target name="build" depends="init" description="Compiles project source">
+        <javac destdir="${project.build.dir}/classes" target="1.5" source="1.5" debug="true" deprecation="false" optimize="false" failonerror="true">
+            <src path="${root.dir}/src" />
+            <classpath refid="master-classpath" />
+        </javac>
+    </target>
+
+   <target name="clean-all" description="Cleans up project build environment">
+        <delete includeemptydirs="true">
+            <fileset dir="${project.build.dir}" includes="**/*.*"/>
+        </delete> 
+    </target>
+
+
+    <target name="clean-class" description="Cleans up project build environment">
+        <delete includeemptydirs="true">
+            <fileset dir="${project.build.dir}/classes" includes="**/*.*"/>
+        </delete> 
+    </target>
+
+    <target name="clean-release" description="Cleans up project build environment">
+        <delete includeemptydirs="true">
+            <fileset dir="${project.build.dir}/release" includes="**/*.*"/>
+        </delete> 
+    </target>
+            	
+    <target name="release" depends="init,clean-all,build" description="Creates release package">
+    	<jar destfile="${project.build.dir}/release/${name}_${version}.jar">
+                <fileset dir="${project.build.dir}/classes">
+                    <include name="**/*.*" />
+                </fileset>
+            </jar>
+    </target>
+
+</project>
